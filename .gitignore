@@ -7,3 +7,7 @@
 /codegen/gen
 
 .idea/
+
+# We do not support go modules yet
+go.mod
+go.sum
