@@ -34,11 +34,13 @@ type Config struct {
 	tracer               graphql.Tracer
 	complexityLimit      int
 	disableIntrospection bool
+	enableAPQ            bool
 }
 
 func (c *Config) newRequestContext(es graphql.ExecutableSchema, doc *ast.QueryDocument, op *ast.OperationDefinition, query string, variables map[string]interface{}) *graphql.RequestContext {
 	reqCtx := graphql.NewRequestContext(doc, query, variables)
 	reqCtx.DisableIntrospection = c.disableIntrospection
+	reqCtx.EnableAPQ = c.enableAPQ
 
 	if hook := c.recover; hook != nil {
 		reqCtx.Recover = hook
@@ -99,6 +101,15 @@ func ErrorPresenter(f graphql.ErrorPresenterFunc) Option {
 func IntrospectionEnabled(enabled bool) Option {
 	return func(cfg *Config) {
 		cfg.disableIntrospection = !enabled
+	}
+}
+
+// AutomaticPersistentQueriesEnabled = true will activate support for caching
+// queries in memory according to Apollo's Automatic Persistent Queries
+// feature.
+func AutomaticPersistentQueriesEnabled(enabled bool) Option {
+	return func(cfg *Config) {
+		cfg.enableAPQ = enabled
 	}
 }
 
@@ -433,6 +444,7 @@ func (gh *graphqlHandler) validateOperation(ctx context.Context, args *validateO
 	}
 
 	op := args.Doc.Operations.ForName(args.OperationName)
+	// TODO(icco): APQ: Here we want to check if op is cached.
 	if op == nil {
 		return ctx, nil, nil, gqlerror.List{gqlerror.Errorf("operation %s not found", args.OperationName)}
 	}

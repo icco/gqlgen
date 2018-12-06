@@ -21,6 +21,7 @@ type RequestContext struct {
 	ComplexityLimit      int
 	OperationComplexity  int
 	DisableIntrospection bool
+	EnableAPQ            bool
 
 	// ErrorPresenter will be used to generate the error
 	// message from errors given to Error().
