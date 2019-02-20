@@ -436,6 +436,7 @@ func (gh *graphqlHandler) validateOperation(ctx context.Context, args *validateO
 	ctx = gh.cfg.tracer.StartOperationValidation(ctx)
 	defer func() { gh.cfg.tracer.EndOperationValidation(ctx) }()
 
+	// Hmm. Can I do this here?
 	if !args.CacheHit {
 		listErr := validator.Validate(gh.exec.Schema(), args.Doc)
 		if len(listErr) != 0 {
