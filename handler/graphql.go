@@ -471,9 +471,13 @@ func (gh *graphqlHandler) validateOperation(ctx context.Context, args *validateO
 	}
 
 	op := args.Doc.Operations.ForName(args.OperationName)
-	// TODO(icco): APQ: Here we want to check if op is cached.
 	if op == nil {
-		return ctx, nil, nil, gqlerror.List{gqlerror.Errorf("operation %s not found", args.OperationName)}
+		log.Printf("%+v", args)
+		if args.Extensions["persistedQuery"] {
+			return ctx, nil, nil, gqlerror.List{gqlerror.Errorf("PersistedQueryNotFound")}
+		} else {
+			return ctx, nil, nil, gqlerror.List{gqlerror.Errorf("operation %s not found", args.OperationName)}
+		}
 	}
 
 	if op.Operation != ast.Query && args.R.Method == http.MethodGet {
