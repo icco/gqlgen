@@ -5,9 +5,8 @@
 /integration/schema-fetched.graphql
 /example/chat/package-lock.json
 /codegen/gen
+/gen
 
 .idea/
-
-# We do not support go modules yet
-go.mod
-go.sum
+*.test
+*.out
