@@ -1,4 +1,4 @@
-module github.com/99designs/gqlgen
+module github.com/icco/gqlgen
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
