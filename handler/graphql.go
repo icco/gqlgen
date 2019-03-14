@@ -20,6 +20,10 @@ import (
 	"github.com/vektah/gqlparser/validator"
 )
 
+var (
+	APQNotFoundError = gqlerror.Errorf("PersistedQueryNotFound")
+)
+
 type params struct {
 	Query         string                 `json:"query"`
 	OperationName string                 `json:"operationName"`
@@ -385,7 +389,11 @@ func (gh *graphqlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Variables:     reqParams.Variables,
 	})
 	if len(listErr) != 0 {
-		sendError(w, http.StatusUnprocessableEntity, listErr...)
+		status := http.StatusUnprocessableEntity
+		if gh.cfg.enableAPQ && listErr[0] == APQNotFoundError {
+			status = http.StatusOK
+		}
+		sendError(w, status, listErr...)
 		return
 	}
 
@@ -463,7 +471,6 @@ func (gh *graphqlHandler) validateOperation(ctx context.Context, args *validateO
 	ctx = gh.cfg.tracer.StartOperationValidation(ctx)
 	defer func() { gh.cfg.tracer.EndOperationValidation(ctx) }()
 
-	// Hmm. Can I do this here?
 	if !args.CacheHit {
 		listErr := validator.Validate(gh.exec.Schema(), args.Doc)
 		if len(listErr) != 0 {
@@ -473,18 +480,16 @@ func (gh *graphqlHandler) validateOperation(ctx context.Context, args *validateO
 
 	op := args.Doc.Operations.ForName(args.OperationName)
 	if op == nil {
-		rc := graphql.GetRequestContext(ctx)
-		data := rc.Extensions["persistedQuery"]
-		log.Printf("%+v", rc)
-		if v, ok := data.(map[string]string); ok {
-			log.Printf("%+v", v)
-			return ctx, nil, nil, gqlerror.List{gqlerror.Errorf("PersistedQueryNotFound")}
-		} else {
+		log.Printf("%+v", args.R)
+		if !gh.cfg.enableAPQ {
 			return ctx, nil, nil, gqlerror.List{gqlerror.Errorf("operation %s not found", args.OperationName)}
+		} else {
+			// TODO(icco): Lookup query here.
+			return ctx, nil, nil, gqlerror.List{APQNotFoundError}
 		}
 	}
 
-	if op.Operation != ast.Query && args.R.Method == http.MethodGet {
+	if op != nil && op.Operation != ast.Query && args.R.Method == http.MethodGet {
 		return ctx, nil, nil, gqlerror.List{gqlerror.Errorf("GET requests only allow query operations")}
 	}
 

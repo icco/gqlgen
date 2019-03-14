@@ -13,7 +13,7 @@ import (
 )
 
 func TestHandlerPOST(t *testing.T) {
-	h := GraphQL(&executableSchemaStub{})
+	h := GraphQL(&executableSchemaStub{}, AutomaticPersistentQueriesEnabled(true))
 
 	t.Run("success", func(t *testing.T) {
 		resp := doRequest(h, "POST", "/graphql", `{"query":"{ me { name } }"}`)
@@ -43,6 +43,13 @@ func TestHandlerPOST(t *testing.T) {
 			assert.Equal(t, http.StatusOK, resp.Code)
 			assert.Equal(t, `{"data":{"name":"test"}}`, resp.Body.String())
 		})
+	})
+
+	t.Run("automatic persisted queries", func(t *testing.T) {
+		resp := doRequest(h, "POST", "/graphql", `{"operationName":"me","variables":{},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"6618f264daef939d198946062f45c672c10cac7a1486b52bc611f86e511e1f41"}}}`)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, `{"errors":[{"message":"PersistedQueryNotFound"}],"data":null}`, resp.Body.String())
 	})
 
 	t.Run("decode failure", func(t *testing.T) {
