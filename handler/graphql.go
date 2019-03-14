@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -472,8 +473,11 @@ func (gh *graphqlHandler) validateOperation(ctx context.Context, args *validateO
 
 	op := args.Doc.Operations.ForName(args.OperationName)
 	if op == nil {
-		log.Printf("%+v", args)
-		if args.Extensions["persistedQuery"] {
+		rc := graphql.GetRequestContext(ctx)
+		data := rc.Extensions["persistedQuery"]
+		log.Printf("%+v", rc)
+		if v, ok := data.(map[string]string); ok {
+			log.Printf("%+v", v)
 			return ctx, nil, nil, gqlerror.List{gqlerror.Errorf("PersistedQueryNotFound")}
 		} else {
 			return ctx, nil, nil, gqlerror.List{gqlerror.Errorf("operation %s not found", args.OperationName)}
